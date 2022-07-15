@@ -2,7 +2,6 @@ import csv, json, sys, argparse
 import pkg_resources  # part of setuptools
 
 version = pkg_resources.require("DynamodbToCSV")[0].version + " MIT License \n Copyright (c) 2022 Esteban Ri "
-
 stdout = open(sys.__stdout__.fileno(),
               mode=sys.__stdout__.mode,
               buffering=1,
@@ -13,7 +12,7 @@ stdout = open(sys.__stdout__.fileno(),
 
 def main(**kwargs):
     values = transform_values(parse_json(kwargs['file_input']))
-    write_csv(values, kwargs['save'], kwargs['header'])
+    write_csv(values, kwargs['save'], kwargs['header'],kwargs['delimiter'])
 
 
 def transform_values(items):
@@ -47,14 +46,14 @@ def parse_json(file_path):
     return data.get('Items', None)
 
 
-def write_csv(values, save, header):
+def write_csv(values, save, header, delimiter):
     """
         Write a dict to CSV format including the header
     """
     if(save is not stdout):
         save = open(save, 'w', newline='')
 
-    output = csv.writer(save)
+    output = csv.writer(save, delimiter=delimiter)
     if header:
         output.writerow(values[0].keys())
 
@@ -79,6 +78,7 @@ def clistart():
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--csv-header', dest="header", action='store_true')
     group.add_argument('--no-csv-header', dest="header", action='store_false')
+    group.add_argument('--delimiter', dest="delimiter", action='store',default=',', help="""Specify a custom separator, defaults to [,] (comma)""")
 
     parser.add_argument('--version', action='version', version='%(prog)s {}'.format(version))
 
@@ -92,6 +92,9 @@ def clistart():
         parser.print_help()
         sys.exit(2)
 
+    print(args.delimiter)
+
     main(file_input=args.input,
          save=args.output,
-         header=args.header)
+         header=args.header,
+         delimiter=args.delimiter)
