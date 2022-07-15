@@ -1,4 +1,7 @@
 import csv, json, sys, argparse
+import pkg_resources  # part of setuptools
+
+version = pkg_resources.require("DynamodbToCSV")[0].version + " MIT License \n Copyright (c) 2022 Esteban Ri "
 
 stdout = open(sys.__stdout__.fileno(),
               mode=sys.__stdout__.mode,
@@ -76,6 +79,8 @@ def clistart():
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--csv-header', dest="header", action='store_true')
     group.add_argument('--no-csv-header', dest="header", action='store_false')
+
+    parser.add_argument('--version', action='version', version='%(prog)s {}'.format(version))
 
     parser.set_defaults(header=True)
 
