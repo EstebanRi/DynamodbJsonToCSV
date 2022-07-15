@@ -1,4 +1,4 @@
-import csv, json, sys, argparse
+import json, sys, argparse
 import pkg_resources  # part of setuptools
 
 version = pkg_resources.require("DynamodbToCSV")[0].version + " MIT License \n Copyright (c) 2022 Esteban Ri "
@@ -10,9 +10,12 @@ stdout = open(sys.__stdout__.fileno(),
               newline='\n',
               closefd=False)
 
+headerset = set()
+
 def main(**kwargs):
     values = transform_values(parse_json(kwargs['file_input']))
     write_csv(values, kwargs['save'], kwargs['header'],kwargs['delimiter'])
+
 
 
 def transform_values(items):
@@ -35,6 +38,8 @@ def transform_values(items):
         keys = item.keys()
         itemloop = {}
         for value in keys:
+            if value not in headerset:
+                headerset.add(value)
             k, v = item.get(value).popitem()
             itemloop[value] = v
         returnvalues.append(itemloop)
@@ -53,13 +58,25 @@ def write_csv(values, save, header, delimiter):
     if(save is not stdout):
         save = open(save, 'w', newline='')
 
-    output = csv.writer(save, delimiter=delimiter)
     if header:
-        output.writerow(values[0].keys())
+        writeRow(save, headerset, None, delimiter)
 
     for row in values:
-        output.writerow(row.values())
+        writeRow(save, headerset, row, delimiter)
 
+    save.close()
+
+def writeRow(save, headers, dataSet, delimiter):
+    for i, head in enumerate(headers):
+        if(dataSet is not None):
+            head = dataSet.get(head)
+            if head is None:
+                head = ""
+        save.write(str(head))
+        if i < headerset.__len__() - 1:
+            save.writelines(delimiter)
+        else:
+            save.write("\n")
 
 def clistart():
 
@@ -78,7 +95,7 @@ def clistart():
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--csv-header', dest="header", action='store_true')
     group.add_argument('--no-csv-header', dest="header", action='store_false')
-    group.add_argument('--delimiter', dest="delimiter", action='store',default=',', help="""Specify a custom separator, defaults to [,] (comma)""")
+    group.add_argument('--delimiter', dest="delimiter", default=',', help="""Specify a custom separator, defaults to [,] (comma)""")
 
     parser.add_argument('--version', action='version', version='%(prog)s {}'.format(version))
 
@@ -91,8 +108,6 @@ def clistart():
         sys.stderr.write('Missing input argument\n')
         parser.print_help()
         sys.exit(2)
-
-    print(args.delimiter)
 
     main(file_input=args.input,
          save=args.output,
